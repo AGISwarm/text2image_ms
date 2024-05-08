@@ -1,0 +1,57 @@
+name: Python application
+
+on:
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      - '**'
+  pull_request:
+
+jobs:
+  setup:
+    runs-on: self-hosted
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.11"
+    - name: Install dependencies
+      env:
+        PIP_INDEX_EXTRA_URL_REMAINDER: ${{ secrets.PIP_INDEX_EXTRA_URL_REMAINDER }}
+        PIP_USERNAME: ${{ secrets.PIP_USERNAME }}
+        PIP_PASSWORD: ${{ secrets.PIP_PASSWORD }}
+        PIP_PROTOCOL: ${{ vars.PIP_PROTOCOL }}
+      run: |
+        python -m venv .venv
+        source .venv/bin/activate 
+        python -m pip install --upgrade pip
+        python -m pip install -e .[test,analyze] \
+            --no-cache-dir \
+            --extra-index-url $PIP_PROTOCOL://$PIP_USERNAME:$PIP_PASSWORD@$PIP_INDEX_EXTRA_URL_REMAINDER \
+            --trusted-host $PIP_INDEX_EXTRA_URL_REMAINDER
+  analysis:
+    needs: setup
+    runs-on: self-hosted
+    steps:
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v3
+    - name: Lint (Pylint)
+      run: source .venv/bin/activate && pylint src
+    - name: Format check (Black)
+      run: source .venv/bin/activate && black --check src
+    - name: Format check (Isort)
+      run: source .venv/bin/activate && isort --check src
+    - name: Type check (Pyright)
+      run: source .venv/bin/activate && pyright src
+    - name: Security scan (Bandit)
+      run: source .venv/bin/activate && bandit -r src
+  unittests:
+    needs: analysis
+    runs-on: self-hosted
+    steps:
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v3
+    - name: Unittests (Pytest)
+      run: source .venv/bin/activate && pytest tests/unittests

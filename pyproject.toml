@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "AGISwarm.python-template"
+dynamic = ["version"]
+description = "Python template project"
+readme = "README.md"
+
+requires-python = ">=3.11"
+license = { file = "LICENSE.txt" }
+keywords = ["sample", "setuptools", "development"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+]
+dependencies = ['numpy']
+[project.optional-dependencies]
+test = ['pytest']
+analyze = ['pyright', 'pylint', 'bandit', 'black', 'isort']
+build = ['setuptools', 'wheel', 'build']
+publish = ['twine']
+
+
+[tool.setuptools.dynamic]
+version = { file = "VERSION" }
+
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+python_template = ["py.typed"]
