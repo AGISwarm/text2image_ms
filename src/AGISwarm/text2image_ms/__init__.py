@@ -3,4 +3,4 @@
 
 from importlib.metadata import version
 
-__version__ = version("AGISwarm.python_template")
+__version__ = version("AGISwarm.text2image_ms")

@@ -3,7 +3,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "AGISwarm.python-template"
+name = "AGISwarm.text2image_ms"
 dynamic = ["version"]
 description = "Python template project"
 readme = "README.md"
@@ -30,4 +30,4 @@ version = { file = "VERSION" }
 where = ["src"]
 
 [tool.setuptools.package-data]
-python_template = ["py.typed"]
+text2image_ms = ["py.typed"]
