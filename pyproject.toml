@@ -21,7 +21,7 @@ dependencies = [
     "diffusers",
     "torch",
     "deepspeed",
-    "hydra",
+    "hydra-core",
     "fastapi",
     "pillow"
 ]
