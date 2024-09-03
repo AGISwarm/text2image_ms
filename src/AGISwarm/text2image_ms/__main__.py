@@ -13,12 +13,9 @@ from pathlib import Path
 
 import hydra
 import uvicorn
-from fastapi import Body, FastAPI, WebSocket
+from fastapi import FastAPI, WebSocket
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from hydra.core.config_store import ConfigStore
-from jinja2 import Environment, FileSystemLoader
-from PIL import Image
 
 from .diffusion_pipeline import Text2ImagePipeline
 from .typing import Text2ImageGenerationConfig, Text2ImagePipelineConfig
@@ -52,37 +49,41 @@ class Text2ImageApp:
         """
 
         await websocket.accept()
-        
+
         try:
             while True:
                 await asyncio.sleep(0.1)
                 data = await websocket.receive_text()
-                print (data)
+                print(data)
                 gen_config = Text2ImageGenerationConfig.model_validate_json(data)
                 request_id = str(uuid.uuid4())
-                async for step_info in self.text2image_pipeline.generate(request_id, gen_config):
-                    if step_info['type'] == 'waiting':
+                async for step_info in self.text2image_pipeline.generate(
+                    request_id, gen_config
+                ):
+                    if step_info["type"] == "waiting":
                         await websocket.send_json(step_info)
                         continue
-                    latents = step_info['image']
-                    
+                    latents = step_info["image"]
+
                     # Конвертируем латенты в base64
                     image_io = BytesIO()
-                    latents.save(image_io, 'PNG')
-                    dataurl = 'data:image/png;base64,' + base64.b64encode(image_io.getvalue()).decode('ascii')
+                    latents.save(image_io, "PNG")
+                    dataurl = "data:image/png;base64," + base64.b64encode(
+                        image_io.getvalue()
+                    ).decode("ascii")
                     # Отправляем инфу о прогрессе и латенты
-                    await websocket.send_json({
-                        "type": "generation_step",
-                        "step": step_info['step'],
-                        "total_steps": step_info['total_steps'],
-                        "latents": dataurl,
-                        "shape": latents.size
-                    })
-                
-                await websocket.send_json({
-                    "type": "generation_complete"
-                })
-        except Exception as e:
+                    await websocket.send_json(
+                        {
+                            "type": "generation_step",
+                            "step": step_info["step"],
+                            "total_steps": step_info["total_steps"],
+                            "latents": dataurl,
+                            "shape": latents.size,
+                        }
+                    )
+
+                await websocket.send_json({"type": "generation_complete"})
+        except Exception as e:  # pylint: disable=broad-except
             logging.error(e)
             traceback.print_exc()
             await websocket.send_json(

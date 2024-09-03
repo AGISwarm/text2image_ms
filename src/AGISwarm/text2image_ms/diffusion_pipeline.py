@@ -11,7 +11,6 @@ from typing import Optional, Union
 import numpy as np
 import torch
 from diffusers import DiffusionPipeline, StableDiffusionPipeline
-from diffusers.callbacks import PipelineCallback
 from PIL import Image
 
 from .typing import Text2ImageGenerationConfig, Text2ImagePipelineConfig
@@ -19,7 +18,13 @@ from .utils import generation_request_queued_func
 
 
 class DiffusionIteratorStreamer:
-    
+    """
+    A class to stream the diffusion pipeline.
+
+    Args:
+        timeout (Optional[Union[float, int]]): The timeout for the stream.
+    """
+
     def __init__(self, timeout: Optional[Union[float, int]] = None):
         self.latents_stack = []
         self.stop_signal: Optional[str] = None
@@ -47,6 +52,7 @@ class DiffusionIteratorStreamer:
             raise StopAsyncIteration()
         return latents
 
+    # pylint: disable=unused-argument
     def callback(
         self,
         pipeline: DiffusionPipeline,
@@ -59,6 +65,7 @@ class DiffusionIteratorStreamer:
         self.put(callback_kwargs["latents"])
         return {"latents": callback_kwargs["latents"]}
 
+    # pylint: disable=too-many-arguments
     def stream(
         self,
         pipe: StableDiffusionPipeline,
@@ -91,18 +98,20 @@ class DiffusionIteratorStreamer:
         return self
 
 
+# pylint: disable=too-few-public-methods
 class Text2ImagePipeline:
     """
     A class to generate images from text prompts using the Stable Diffusion model.
 
     Args:
-        config (Text2ImagePipelineConfig): The configuration for the Diffusion Pipeline initialization.
-        - model (str): The model to use for generating the image.
-        - dtype (str): The data type to use for the model.
-        - device (str): The device to run the model on.
-        - safety_checker (str | None): The safety checker to use for the model.
-        - requires_safety_checker (bool): Whether the model requires a safety checker.
-        - low_cpu_mem_usage (bool): Whether to use low CPU memory usage.
+        config (Text2ImagePipelineConfig): 
+            The configuration for the Diffusion Pipeline initialization.
+                - model (str): The model to use for generating the image.
+                - dtype (str): The data type to use for the model.
+                - device (str): The device to run the model on.
+                - safety_checker (str | None): The safety checker to use for the model.
+                - requires_safety_checker (bool): Whether the model requires a safety checker.
+                - low_cpu_mem_usage (bool): Whether to use low CPU memory usage.
     """
 
     def __init__(self, config: Text2ImagePipelineConfig):
@@ -120,23 +129,20 @@ class Text2ImagePipeline:
         # self.pipeline.enable_sequential_cpu_offload()
 
     @partial(generation_request_queued_func, wait_time=0.1)
-    async def generate(
-        self,
-        request_id: str,
-        gen_config: Text2ImageGenerationConfig
-    ):
+    async def generate(self, request_id: str, gen_config: Text2ImageGenerationConfig):
         """
         Generate an image from a text prompt using the Text2Image pipeline.
 
         Args:
-            gen_config (Text2ImageGenerationConfig): The configuration for the Text2Image Pipeline generation.
-            - prompt (str): The text prompt to generate the image from.
-            - negative_prompt (str): The negative text prompt to generate the image from.
-            - num_inference_steps (int): The number of inference steps to run.
-            - guidance_scale (float): The guidance scale to use for the model.
-            - seed (int): The seed to use for the model.
-            - width (int): The width of the image to generate.
-            - height (int): The height of the image to generate.
+            gen_config (Text2ImageGenerationConfig): 
+                The configuration for the Text2Image Pipeline generation.
+                    - prompt (str): The text prompt to generate the image from.
+                    - negative_prompt (str): The negative text prompt to generate the image from.
+                    - num_inference_steps (int): The number of inference steps to run.
+                    - guidance_scale (float): The guidance scale to use for the model.
+                    - seed (int): The seed to use for the model.
+                    - width (int): The width of the image to generate.
+                    - height (int): The height of the image to generate.
 
         Yields:
             dict: A dictionary containing the step information for the generation.

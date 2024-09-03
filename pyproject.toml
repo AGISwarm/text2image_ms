@@ -20,7 +20,10 @@ dependencies = [
     "pillow",
     "diffusers",
     "torch",
-    "deepspeed"
+    "deepspeed",
+    "hydra",
+    "fastapi",
+    "pillow"
 ]
 [project.optional-dependencies]
 test = ['pytest']

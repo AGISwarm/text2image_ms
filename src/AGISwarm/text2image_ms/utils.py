@@ -2,10 +2,6 @@
 
 import asyncio
 import threading
-from abc import abstractmethod
-from typing import Dict, Generic, List, Protocol, TypeVar, cast, runtime_checkable
-
-from pydantic import BaseModel
 
 __ABORT_EVENTS = {}
 __QUEUE = []
