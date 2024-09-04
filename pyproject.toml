@@ -25,6 +25,7 @@ dependencies = [
     "fastapi",
     "pillow",
     "uvicorn",
+    "AGISwarm.asyncio_queue_manager"
 ]
 [project.optional-dependencies]
 test = ['pytest']
