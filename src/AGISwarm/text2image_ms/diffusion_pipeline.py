@@ -70,7 +70,7 @@ class DiffusionIteratorStreamer:
     # pylint: disable=too-many-arguments
     def stream(
         self,
-        pipe: StableDiffusionPipeline,
+        pipeline: StableDiffusionPipeline,
         prompt: str,
         negative_prompt: str,
         num_inference_steps: int,
@@ -84,12 +84,12 @@ class DiffusionIteratorStreamer:
 
         def run_pipeline():
             try:
-                pipe(
+                pipeline(
                     prompt=prompt,
                     negative_prompt=negative_prompt,
                     num_inference_steps=num_inference_steps,
                     guidance_scale=guidance_scale,
-                    seed=seed,
+                    generator=torch.Generator(pipeline.device).manual_seed(seed),
                     width=width,
                     height=height,
                     callback_on_step_end=self.callback,  # type: ignore
