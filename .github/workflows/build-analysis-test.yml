@@ -37,6 +37,8 @@ jobs:
     steps:
     - name: Set up Python 3.11
       uses: actions/setup-python@v3
+      with:
+        python-version: "3.11"
     - name: Lint (Pylint)
       run: source .venv/bin/activate && pylint src
     - name: Format check (Black)
@@ -53,5 +55,7 @@ jobs:
     steps:
     - name: Set up Python 3.11
       uses: actions/setup-python@v3
+      with:
+        python-version: "3.11"
     - name: Unittests (Pytest)
       run: source .venv/bin/activate && pytest tests/unittests

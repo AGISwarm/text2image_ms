@@ -14,3 +14,4 @@ __pycache__/
 
 # due to using vscode
 .vscode/
+outputs/

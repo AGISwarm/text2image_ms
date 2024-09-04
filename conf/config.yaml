@@ -1,0 +1,10 @@
+model: "runwayml/stable-diffusion-v1-5"
+dtype: "float32"
+device: "cuda:0"
+safety_checker: 
+requires_safety_checker: True
+low_cpu_mem_usage: False
+
+hydra:
+  job:
+    chdir: false

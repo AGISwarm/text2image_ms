@@ -1,0 +1,7 @@
+{
+    "pythonVersion": "3.13", // Specify the Python version to use
+    "pythonPlatform": "Linux", // Specify the platform (Windows, Linux, or macOS)
+    "typeCheckingMode": "basic", // Set the type checking mode (basic or strict)
+    "reportMissingTypeStubs": false, // Report missing type stubs for imported modules
+    "reportPrivateImportUsage": false, // Report usage of private imports
+}

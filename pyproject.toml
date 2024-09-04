@@ -8,13 +8,25 @@ dynamic = ["version"]
 description = "Python template project"
 readme = "README.md"
 
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 license = { file = "LICENSE.txt" }
 keywords = ["sample", "setuptools", "development"]
 classifiers = [
     "Programming Language :: Python :: 3",
 ]
-dependencies = ['numpy']
+dependencies = [
+    'numpy<2.0.0',
+    "flask",
+    "pillow",
+    "diffusers",
+    "torch",
+    "deepspeed",
+    "hydra-core",
+    "fastapi",
+    "pillow",
+    "uvicorn",
+    "AGISwarm.asyncio_queue_manager"
+]
 [project.optional-dependencies]
 test = ['pytest']
 analyze = ['pyright', 'pylint', 'bandit', 'black', 'isort']
@@ -31,3 +43,9 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 text2image_ms = ["py.typed"]
+
+[tool.isort]
+profile = "black"
+
+[tool.pylint.'MESSAGES CONTROL']
+disable = "wrong-import-order"
