@@ -1,4 +1,5 @@
 let ws = new WebSocket(WEBSOCKET_URL);
+let abort_url = ABORT_URL;
 let currentRequestID = '';
 
 ws.onopen = function () {
@@ -7,17 +8,24 @@ ws.onopen = function () {
 
 ws.onmessage = function (event) {
     const data = JSON.parse(event.data);
+    currentRequestID = data["request_id"];
     console.log('Message received:', data);
-    if (data["type"] == "generation_complete") {
+    if (data["status"] == "finished" || data["status"] == "aborted") {
         enableGenerateButton();
         return;
     };
-    if (data["type"] == "waiting") {
-        msg = data["msg"];
-        console.log(msg);
+    if (data["status"] == "waiting") {
+        console.log("Waiting for ", data["queue_pos"], " requests to finish");
         return;
     }
-
+    if (data["status"] == "running") {
+        updateStatus(data["step"], data["total_steps"]);
+    }
+    if (data["status"] == "error") {
+        console.log("Error in the server");
+        enableGenerateButton();
+        return;
+    }
     imgElement = document.getElementById('image-output');
     let img = imgElement.querySelector('img');
     if (!img) {
@@ -74,6 +82,49 @@ function sendMessage() {
     disableGenerateButton();
 };
 
+
+function abortGeneration() {
+    console.log(currentRequestID)
+    fetch(abort_url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 'request_id': currentRequestID })
+    })
+        .then(response => response.text())
+        .catch(error => console.error('Error aborting generation:', error));
+    // Enable the send button
+    document.getElementById('send-btn').style.backgroundColor = "#363d46";
+    document.getElementById('send-btn').textContent = "Send";
+    document.getElementById('send-btn').disabled = false;
+    console.log("Generation aborted.");
+}
+
+function sendButtonClick() {
+    document.getElementById('send-btn').disabled = true;
+    if (document.getElementById('send-btn').textContent === "Send") {
+        sendMessage();
+    }
+    else if (document.getElementById('send-btn').textContent === "Abort") {
+        abortGeneration();
+    }
+}
+
+function enterSend(event) {
+    if (event.key === 'Enter' && !event.ctrlKey) {
+        event.preventDefault();
+        if (document.getElementById('send-btn').textContent === "Send") {
+            document.getElementById('send-btn').disabled = true;
+            sendMessage();
+        }
+    } else if (event.key === 'Enter' && event.ctrlKey) {
+        // Allow new line with Ctrl+Enter
+        this.value += '\n';
+    }
+}
+
+document.getElementById('prompt').addEventListener('keydown', enterSend);
+document.getElementById('negative_prompt').addEventListener('keydown', enterSend);
+
 function updateStatus(step, total_steps) {
     const statusElement = document.getElementById('status');
     if (!statusElement) {
@@ -96,15 +147,15 @@ function updateImage(base64Image) {
 }
 
 function disableGenerateButton() {
-    const button = document.getElementById('send-btn');
-    button.disabled = true;
-    button.textContent = 'Generating...';
+    document.getElementById('send-btn').style.backgroundColor = "#808080";
+    document.getElementById('send-btn').textContent = "Abort";
+    document.getElementById('send-btn').disabled = false;
 }
 
 function enableGenerateButton() {
-    const button = document.getElementById('send-btn');
-    button.disabled = false;
-    button.textContent = 'Generate';
+    document.getElementById('send-btn').style.backgroundColor = "#363d46";
+    document.getElementById('send-btn').textContent = "Send";
+    document.getElementById('send-btn').disabled = false;
 }
 
 function resetForm() {
