@@ -23,7 +23,8 @@ dependencies = [
     "deepspeed",
     "hydra-core",
     "fastapi",
-    "pillow"
+    "pillow",
+    "uvicorn",
 ]
 [project.optional-dependencies]
 test = ['pytest']
