@@ -81,6 +81,26 @@ class Text2ImageApp:
         self.app.include_router(self.ws_router)
 
     @staticmethod
+    def send_image(websocket: WebSocket, image: Image.Image, **kwargs):
+        """
+        Send an image to the client.
+        """
+        image_io = BytesIO()
+        image.save(image_io, "PNG")
+        dataurl = "data:image/png;base64," + base64.b64encode(
+            image_io.getvalue()
+        ).decode("ascii")
+        asyncio_run(
+            websocket.send_json(
+                {
+                    "image": dataurl,
+                    "shape": image.size,
+                }
+                | kwargs
+            )
+        )
+
+    @staticmethod
     def diffusion_pipeline_step_callback(
         websocket: WebSocket,
         request_id: str,
@@ -95,31 +115,18 @@ class Text2ImageApp:
         """Callback для StableDiffusionPipeline"""
         if abort_event.is_set():
             raise asyncio.CancelledError("Diffusion pipeline aborted")
-
         if step == 0 or step != total_steps and step % latent_update_frequency != 0:
             return {"latents": callback_kwargs["latents"]}
-
         with torch.no_grad():
             image = pipeline.decode_latents(callback_kwargs["latents"].clone())[0]
         image = Image.fromarray((image * 255).astype(np.uint8))
-
-        image_io = BytesIO()
-        image.save(image_io, "PNG")
-        dataurl = "data:image/png;base64," + base64.b64encode(
-            image_io.getvalue()
-        ).decode("ascii")
-
-        asyncio_run(
-            websocket.send_json(
-                {
-                    "request_id": request_id,
-                    "status": RequestStatus.RUNNING,
-                    "step": step,
-                    "total_steps": total_steps,
-                    "latents": dataurl,
-                    "shape": image.size,
-                }
-            )
+        Text2ImageApp.send_image(
+            websocket,
+            image,
+            request_id=request_id,
+            status=RequestStatus.RUNNING,
+            step=step,
+            total_steps=total_steps,
         )
         return {"latents": callback_kwargs["latents"]}
 
@@ -152,7 +159,7 @@ class Text2ImageApp:
                     request_id,
                     abort_event,
                     gen_config.num_inference_steps,
-                    self.latent_update_frequency
+                    self.latent_update_frequency,
                 )
 
                 # Start the generation task
@@ -161,10 +168,11 @@ class Text2ImageApp:
                         gen_config, callback_on_step_end
                     ):
                         if "status" not in step_info:  # Task's return value.
-                            await websocket.send_json(
-                                {
-                                    "status": RequestStatus.FINISHED,
-                                }
+                            Text2ImageApp.send_image(
+                                websocket,
+                                step_info["image"],
+                                request_id=request_id,
+                                status=RequestStatus.FINISHED,
                             )
                             break
                         if (

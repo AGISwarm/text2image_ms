@@ -10,7 +10,7 @@ ws.onmessage = function (event) {
     const data = JSON.parse(event.data);
     currentRequestID = data["request_id"];
     console.log('Message received:', data);
-    if (data["status"] == "finished" || data["status"] == "aborted") {
+    if(data["status"] == "aborted") {
         enableGenerateButton();
         return;
     };
@@ -26,13 +26,17 @@ ws.onmessage = function (event) {
         enableGenerateButton();
         return;
     }
+    if (data["status"] == "finished"){
+        updateStatus("Finished", "Finished");
+        enableGenerateButton();
+    }
     imgElement = document.getElementById('image-output');
     let img = imgElement.querySelector('img');
     if (!img) {
         img = document.createElement('img');
         imgElement.appendChild(img);
     }
-    img.src = data['latents'];
+    img.src = data['image'];
     console.log('Image updated:', data);
 };
 
@@ -120,7 +124,7 @@ function enterSend(event) {
         // Allow new line with Ctrl+Enter
         this.value += '\n';
     }
-}
+};
 
 document.getElementById('prompt').addEventListener('keydown', enterSend);
 document.getElementById('negative_prompt').addEventListener('keydown', enterSend);
@@ -132,8 +136,12 @@ function updateStatus(step, total_steps) {
         statusElement.id = 'status';
         document.getElementById('image-output').appendChild(statusElement);
     }
-    statusElement.textContent = `Generating: ${step}/${total_steps}`;
-}
+    if (step === "Finished") {
+        statusElement.setAttribute(`textContent`, `Finished`);
+        return;
+    }
+    statusElement.setAttribute(`textContent`,`Generating: ${step}/${total_steps}`);
+};
 
 
 function updateImage(base64Image) {
@@ -144,19 +152,19 @@ function updateImage(base64Image) {
         document.body.appendChild(img);
     }
     img.src = `data:image/png;base64,${base64Image}`;
-}
+};
 
 function disableGenerateButton() {
     document.getElementById('send-btn').style.backgroundColor = "#808080";
     document.getElementById('send-btn').textContent = "Abort";
     document.getElementById('send-btn').disabled = false;
-}
+};
 
 function enableGenerateButton() {
     document.getElementById('send-btn').style.backgroundColor = "#363d46";
     document.getElementById('send-btn').textContent = "Send";
     document.getElementById('send-btn').disabled = false;
-}
+};
 
 function resetForm() {
     document.getElementById('num_inference_steps').value = '50';
@@ -164,7 +172,7 @@ function resetForm() {
     document.getElementById('width').value = '512';
     document.getElementById('height').value = '512';
     document.getElementById('seed').value = '-1';
-}
+};
 
 const menuToggle = document.getElementById('menu-toggle');
 const configContainer = document.querySelector('.config-container');

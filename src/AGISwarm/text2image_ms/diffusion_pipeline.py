@@ -3,6 +3,7 @@ This module contains the Stable Diffusion Pipeline class
 that is used to generate images from text prompts using the Stable Diffusion model.
 """
 
+
 from typing import Callable, Optional
 
 import numpy as np
@@ -80,13 +81,15 @@ class Text2ImagePipeline:
             callback_on_step_end (Optional[Callable[[dict], None]):
                 The callback function to call on each step end.
         """
-        return self.pipeline(
-            prompt=gen_config.prompt,
-            negative_prompt=gen_config.negative_prompt,
-            num_inference_steps=gen_config.num_inference_steps,
-            guidance_scale=gen_config.guidance_scale,
-            seed=gen_config.seed,
-            width=gen_config.width,
-            height=gen_config.height,
-            callback_on_step_end=callback_on_step_end,
-        )
+        return {
+            "image": self.pipeline(
+                prompt=gen_config.prompt,
+                negative_prompt=gen_config.negative_prompt,
+                num_inference_steps=gen_config.num_inference_steps,
+                guidance_scale=gen_config.guidance_scale,
+                seed=gen_config.seed,
+                width=gen_config.width,
+                height=gen_config.height,
+                callback_on_step_end=callback_on_step_end,
+            )["images"][0]
+        }
