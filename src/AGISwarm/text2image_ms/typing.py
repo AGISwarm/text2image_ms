@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 
 @dataclass
-class Text2ImagePipelineConfig(BaseModel):
+class DiffusionConfig(BaseModel):
     """
     A class to hold the configuration for the Diffusion Pipeline initialization.
     """
@@ -20,6 +20,26 @@ class Text2ImagePipelineConfig(BaseModel):
     safety_checker: str | None
     requires_safety_checker: bool
     low_cpu_mem_usage: bool
+
+
+@dataclass
+class GUIConfig(BaseModel):
+    """
+    A class to hold the configuration for the GUI.
+    """
+    
+    latent_update_frequency: int
+
+
+@dataclass
+class Config(BaseModel):
+    """
+    A class to hold the configuration for the Text2Image Pipeline.
+    """
+
+    diffusion_config: DiffusionConfig
+    gui_config: GUIConfig
+
 
 
 class Text2ImageGenerationConfig(BaseModel):
