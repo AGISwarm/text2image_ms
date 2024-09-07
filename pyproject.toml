@@ -16,15 +16,14 @@ classifiers = [
 ]
 dependencies = [
     'numpy<2.0.0',
-    "flask",
     "pillow",
     "diffusers",
     "torch",
-    "deepspeed",
     "hydra-core",
     "fastapi",
     "pillow",
     "uvicorn",
+    "nest_asyncio",
     "AGISwarm.asyncio_queue_manager"
 ]
 [project.optional-dependencies]
