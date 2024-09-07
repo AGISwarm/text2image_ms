@@ -27,7 +27,7 @@ class GUIConfig(BaseModel):
     """
     A class to hold the configuration for the GUI.
     """
-    
+
     latent_update_frequency: int
 
 
@@ -39,7 +39,6 @@ class Config(BaseModel):
 
     diffusion_config: DiffusionConfig
     gui_config: GUIConfig
-
 
 
 class Text2ImageGenerationConfig(BaseModel):

@@ -3,16 +3,12 @@ This module contains the Stable Diffusion Pipeline class
 that is used to generate images from text prompts using the Stable Diffusion model.
 """
 
-
 from typing import Callable, Optional
 
-import numpy as np
 import torch
-from diffusers import DiffusionPipeline, StableDiffusionPipeline
-from PIL import Image
-from sfast.compilers.diffusion_pipeline_compiler import CompilationConfig, compile
+from diffusers import StableDiffusionPipeline
 
-from .typing import Text2ImageGenerationConfig, DiffusionConfig
+from .typing import DiffusionConfig, Text2ImageGenerationConfig
 
 
 # pylint: disable=too-few-public-methods
@@ -41,24 +37,18 @@ class Text2ImagePipeline:
             low_cpu_mem_usage=config.low_cpu_mem_usage,
         ).to(config.device)
 
-        sfast_config = CompilationConfig.Default()
-        # CUDA Graph is suggested for small batch sizes and small resolutions to reduce CPU overhead.
-        # But it can increase the amount of GPU memory used.
-        # For StableVideoDiffusionPipeline it is not needed.
-        sfast_config.enable_cuda_graph = True
-
-        # self.pipeline = compile(self.pipeline, sfast_config)
-
+        # sfast_config = CompilationConfig.Default()
+        # sfast_config.enable_cuda_graph = True
         self.pipeline.vae.enable_tiling()
         self.pipeline.vae.enable_slicing()
         # self.pipeline.enable_sequential_cpu_offload()
 
         # Warmup the model
-        self.pipeline(
-            prompt="warmup",
-            negative_prompt="warmup",
-            num_inference_steps=40,
-        )
+        # self.pipeline(
+        #     prompt="warmup",
+        #     negative_prompt="warmup",
+        #     num_inference_steps=40,
+        # )
 
     def generate(
         self,
@@ -87,7 +77,7 @@ class Text2ImagePipeline:
                 negative_prompt=gen_config.negative_prompt,
                 num_inference_steps=gen_config.num_inference_steps,
                 guidance_scale=gen_config.guidance_scale,
-                seed=gen_config.seed,
+                generator=torch.Generator().manual_seed(gen_config.seed),
                 width=gen_config.width,
                 height=gen_config.height,
                 callback_on_step_end=callback_on_step_end,
