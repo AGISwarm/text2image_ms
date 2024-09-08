@@ -101,9 +101,6 @@ function sendMessage() {
 
     user_message_container = get_user_message_container(prompt, negative_prompt);
     document.getElementById('chat-output').insertBefore(user_message_container, document.getElementById('chat-output').firstChild);
-    document.getElementById('prompt').value = '';
-    document.getElementById('negative_prompt').value = '';
-    document.getElementById('prompt').focus();
 
     ws.send(JSON.stringify(message));
     console.log('Message sent:', message);
