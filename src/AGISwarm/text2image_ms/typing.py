@@ -37,7 +37,7 @@ class Config(BaseModel):
     A class to hold the configuration for the Text2Image Pipeline.
     """
 
-    diffusion_config: DiffusionConfig
+    t2i_model_config: DiffusionConfig
     gui_config: GUIConfig
 
 

@@ -1,5 +1,5 @@
 defaults:
-  - diffusion_config: default
+  - t2i_model_config: default
   - gui_config: default
 
 hydra:
