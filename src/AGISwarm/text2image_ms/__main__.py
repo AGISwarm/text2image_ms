@@ -6,14 +6,11 @@ This module is the entry point for the text2image_ms service.
 import asyncio
 import base64
 import logging
-import traceback
 from functools import partial
 from io import BytesIO
 from pathlib import Path
 
 import hydra
-import numpy as np
-import torch
 import uvicorn
 from AGISwarm.asyncio_queue_manager import AsyncIOQueueManager, TaskStatus
 from fastapi import APIRouter, FastAPI, WebSocket
@@ -35,7 +32,7 @@ class Text2ImageApp:
     def __init__(self, config: DiffusionConfig, gui_config: GUIConfig):
         self.app = FastAPI()
         self.setup_routes()
-        self.queue_manager = AsyncIOQueueManager()
+        self.queue_manager = AsyncIOQueueManager(sleep_time=0.0001)
         self.text2image_pipeline = Text2ImagePipeline(config)
         self.latent_update_frequency = gui_config.latent_update_frequency
         self.start_abort_lock = asyncio.Lock()
@@ -57,15 +54,23 @@ class Text2ImageApp:
         self.app.include_router(self.ws_router)
 
     @staticmethod
-    def send_image(websocket: WebSocket, image: Image.Image, **kwargs):
+    def pil2dataurl(image: Image.Image):
         """
-        Send an image to the client.
+        Convert a PIL image to a data URL.
         """
         image_io = BytesIO()
         image.save(image_io, "PNG")
         dataurl = "data:image/png;base64," + base64.b64encode(
             image_io.getvalue()
         ).decode("ascii")
+        return dataurl
+
+    @staticmethod
+    def send_image(websocket: WebSocket, image: Image.Image, **kwargs):
+        """
+        Send an image to the client.
+        """
+        dataurl = Text2ImageApp.pil2dataurl(image)
         asyncio_run(
             websocket.send_json(
                 {
@@ -84,20 +89,19 @@ class Text2ImageApp:
         abort_event: asyncio.Event,
         total_steps: int,
         latent_update_frequency: int,
-        pipeline,
+        pipeline: Text2ImagePipeline,
+        _diffusers_pipeline,
         step: int,
-        _: int,
+        _timestamp: int,
         callback_kwargs: dict,
     ):
         """Callback для StableDiffusionPipeline"""
         if abort_event.is_set():
             raise asyncio.CancelledError("Diffusion pipeline aborted")
-        asyncio_run(asyncio.sleep(0.01))
+        asyncio_run(asyncio.sleep(0.0001))
         if step == 0 or step != total_steps and step % latent_update_frequency != 0:
-            return {"latents": callback_kwargs["latents"]}
-        with torch.no_grad():
-            image = pipeline.decode_latents(callback_kwargs["latents"].clone())[0]
-        image = Image.fromarray((image * 255).astype(np.uint8))
+            return callback_kwargs
+        image = pipeline.decode_latents(callback_kwargs["latents"])
         Text2ImageApp.send_image(
             websocket,
             image,
@@ -106,7 +110,7 @@ class Text2ImageApp:
             step=step,
             total_steps=total_steps,
         )
-        return {"latents": callback_kwargs["latents"]}
+        return callback_kwargs
 
     async def generate(self, websocket: WebSocket):
         """
@@ -117,7 +121,7 @@ class Text2ImageApp:
 
         try:
             while True:
-                await asyncio.sleep(0.01)
+                await asyncio.sleep(0.0001)
                 data = await websocket.receive_text()
                 async with self.start_abort_lock:
                     # Read generation config
@@ -144,6 +148,7 @@ class Text2ImageApp:
                     abort_event,
                     gen_config.num_inference_steps,
                     self.latent_update_frequency,
+                    self.text2image_pipeline,
                 )
 
                 # Start the generation task
@@ -179,7 +184,6 @@ class Text2ImageApp:
                     )
                 except Exception as e:  # pylint: disable=broad-except
                     logging.error(e)
-                    traceback.print_exc()
                     await websocket.send_json(
                         {
                             "status": TaskStatus.ERROR,
@@ -188,7 +192,6 @@ class Text2ImageApp:
                     )
         except Exception as e:  # pylint: disable=broad-except
             logging.error(e)
-            traceback.print_exc()
             await websocket.send_json(
                 {
                     "status": TaskStatus.ERROR,

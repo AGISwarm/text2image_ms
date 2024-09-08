@@ -71,15 +71,37 @@ class Text2ImagePipeline:
             callback_on_step_end (Optional[Callable[[dict], None]):
                 The callback function to call on each step end.
         """
+        generator = None
+        if gen_config.seed != -1:
+            generator = torch.Generator()
+            generator.manual_seed(gen_config.seed)
         return {
             "image": self.pipeline(
                 prompt=gen_config.prompt,
                 negative_prompt=gen_config.negative_prompt,
                 num_inference_steps=gen_config.num_inference_steps,
                 guidance_scale=gen_config.guidance_scale,
-                generator=torch.Generator().manual_seed(gen_config.seed),
+                generator=generator,
                 width=gen_config.width,
                 height=gen_config.height,
                 callback_on_step_end=callback_on_step_end,
             )["images"][0]
         }
+
+    def decode_latents(self, latents: torch.Tensor, output_type: str = "pil"):
+        """
+        Decode the latents to an image.
+
+        Args:
+            latents (torch.Tensor): The latents to decode to an image.
+            output_type (str, optional): The output type of the image. Defaults to "pil".
+                options: "pil", "np", "torch".
+        """
+        image = self.pipeline.vae.decode(
+            latents / self.pipeline.vae.config.scaling_factor,
+            return_dict=False,
+        )[0]
+        image = self.pipeline.image_processor.postprocess(
+            image, output_type=output_type, do_denormalize=[True]
+        )[0]
+        return image
