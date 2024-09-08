@@ -27,11 +27,13 @@ class Text2ImageApp:
     A class to represent the Text2Image service.
     """
 
-    def __init__(self, config: DiffusionConfig, gui_config: GUIConfig):
+    def __init__(
+        self, hf_model_name: str, config: DiffusionConfig, gui_config: GUIConfig
+    ):
         self.app = FastAPI()
         self.setup_routes()
         self.queue_manager = AsyncIOQueueManager(sleep_time=0.0001)
-        self.text2image_pipeline = Text2ImagePipeline(config)
+        self.text2image_pipeline = Text2ImagePipeline(hf_model_name, config)
         self.latent_update_frequency = gui_config.latent_update_frequency
         self.start_abort_lock = asyncio.Lock()
 

@@ -1,6 +1,4 @@
-model: "runwayml/stable-diffusion-v1-5"
-dtype: "float32"
-device: "cuda:0"
-safety_checker: 
-requires_safety_checker: True
-low_cpu_mem_usage: True
+dtype: !!str "float32"
+device: !!str "cuda:0"
+requires_safety_checker: !!bool True
+low_cpu_mem_usage: !!bool True

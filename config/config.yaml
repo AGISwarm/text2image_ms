@@ -1,6 +1,9 @@
+hf_model_name: "runwayml/stable-diffusion-v1-5"
+
 defaults:
   - t2i_model_config: default
   - gui_config: default
+  - uvicorn_config: default
 
 hydra:
   job:

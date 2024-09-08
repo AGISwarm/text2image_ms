@@ -6,6 +6,7 @@ This module contains the typing classes for the Text2Image Pipeline.
 from dataclasses import dataclass
 
 from pydantic import BaseModel
+from uvicorn.config import LoopSetupType
 
 
 @dataclass
@@ -14,12 +15,21 @@ class DiffusionConfig(BaseModel):
     A class to hold the configuration for the Diffusion Pipeline initialization.
     """
 
-    model: str
     dtype: str
     device: str
-    safety_checker: str | None
-    requires_safety_checker: bool
     low_cpu_mem_usage: bool
+
+
+@dataclass
+class UvicornConfig(BaseModel):
+    """
+    A class to hold the configuration for the Uvicorn.
+    """
+
+    host: str
+    port: int
+    log_level: str
+    loop: LoopSetupType
 
 
 @dataclass
@@ -37,8 +47,10 @@ class Config(BaseModel):
     A class to hold the configuration for the Text2Image Pipeline.
     """
 
+    hf_model_name: str
     t2i_model_config: DiffusionConfig
     gui_config: GUIConfig
+    uvicorn_config: UvicornConfig
 
 
 class Text2ImageGenerationConfig(BaseModel):

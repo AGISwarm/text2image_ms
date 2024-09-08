@@ -1,1 +1,1 @@
-latent_update_frequency: 5
+latent_update_frequency: !!int 5

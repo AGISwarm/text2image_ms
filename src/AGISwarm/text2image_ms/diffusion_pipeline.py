@@ -27,13 +27,13 @@ class Text2ImagePipeline:
                 - low_cpu_mem_usage (bool): Whether to use low CPU memory usage.
     """
 
-    def __init__(self, config: DiffusionConfig):
+    def __init__(self, hf_model_name: str, config: DiffusionConfig):
         self.config = config
         self.pipeline = StableDiffusionPipeline.from_pretrained(
-            config.model,
+            hf_model_name,
             torch_dtype=getattr(torch, config.dtype),
-            safety_checker=config.safety_checker,
-            requires_safety_checker=config.requires_safety_checker,
+            safety_checker=None,
+            requires_safety_checker=False,
             low_cpu_mem_usage=config.low_cpu_mem_usage,
         ).to(config.device)
 

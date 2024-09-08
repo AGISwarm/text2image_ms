@@ -22,13 +22,15 @@ def main(config: Config):
     """
     The main function for the Text2Image service.
     """
-    text2image_app = Text2ImageApp(config.t2i_model_config, config.gui_config)
+    text2image_app = Text2ImageApp(
+        config.hf_model_name, config.t2i_model_config, config.gui_config
+    )
     uvicorn.run(
         text2image_app.app,
-        host="127.0.0.1",
-        port=8002,
-        log_level="debug",
-        loop="asyncio",
+        host=config.uvicorn_config.host,
+        port=config.uvicorn_config.port,
+        log_level=config.uvicorn_config.log_level,
+        loop=config.uvicorn_config.loop,
     )
 
 
