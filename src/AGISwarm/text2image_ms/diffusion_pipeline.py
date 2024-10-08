@@ -76,15 +76,15 @@ class Text2ImagePipeline:
             generator = torch.Generator()
             generator.manual_seed(gen_config.seed)
         return self.pipeline(
-                prompt=gen_config.prompt,
-                negative_prompt=gen_config.negative_prompt,
-                num_inference_steps=gen_config.num_inference_steps,
-                guidance_scale=gen_config.guidance_scale,
-                generator=generator,
-                width=gen_config.width,
-                height=gen_config.height,
-                callback_on_step_end=callback_on_step_end,
-            )["images"][0]
+            prompt=gen_config.prompt,
+            negative_prompt=gen_config.negative_prompt,
+            num_inference_steps=gen_config.num_inference_steps,
+            guidance_scale=gen_config.guidance_scale,
+            generator=generator,
+            width=gen_config.width,
+            height=gen_config.height,
+            callback_on_step_end=callback_on_step_end,
+        )["images"][0]
 
     def decode_latents(self, latents: torch.Tensor, output_type: str = "pil"):
         """

@@ -87,7 +87,7 @@ class Text2ImageApp:
         )
 
     @staticmethod
-    # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-arguments, too-many-positional-arguments
     def diffusion_pipeline_step_callback(
         websocket: WebSocket,
         task_id: str,
