@@ -11,11 +11,11 @@ from io import BytesIO
 from pathlib import Path
 
 from AGISwarm.asyncio_queue_manager import AsyncIOQueueManager, TaskStatus
-from fastapi import APIRouter, FastAPI, WebSocket
+from fastapi import APIRouter, FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from PIL import Image
-from pydantic.main import BaseModel
+from pydantic import BaseModel
 
 from .diffusion_pipeline import Text2ImagePipeline
 from .typing import DiffusionConfig, GUIConfig, Text2ImageGenerationConfig
@@ -32,7 +32,8 @@ class Text2ImageApp:
     ):
         self.app = FastAPI()
         self.setup_routes()
-        self.queue_manager = AsyncIOQueueManager(sleep_time=0.0001)
+        self.sleep_time = 0.001
+        self.queue_manager = AsyncIOQueueManager(sleep_time=self.sleep_time)
         self.text2image_pipeline = Text2ImagePipeline(hf_model_name, config)
         self.latent_update_frequency = gui_config.latent_update_frequency
         self.start_abort_lock = asyncio.Lock()
@@ -66,7 +67,7 @@ class Text2ImageApp:
         return dataurl
 
     @staticmethod
-    def send_image(websocket: WebSocket, image: Image.Image, **kwargs):
+    def send_image(websocket: WebSocket, task_id: str, image: Image.Image, **kwargs):
         """
         Send an image to the client.
         """
@@ -74,10 +75,14 @@ class Text2ImageApp:
         asyncio_run(
             websocket.send_json(
                 {
-                    "image": dataurl,
-                    "shape": image.size,
+                    "task_id": task_id,
+                    "status": TaskStatus.RUNNING,
+                    "content": {
+                        "image": dataurl,
+                        "shape": image.size,
+                    }
+                    | kwargs,
                 }
-                | kwargs
             )
         )
 
@@ -90,6 +95,7 @@ class Text2ImageApp:
         total_steps: int,
         latent_update_frequency: int,
         pipeline: Text2ImagePipeline,
+        sleep_time: float,
         _diffusers_pipeline,
         step: int,
         _timestamp: int,
@@ -98,16 +104,31 @@ class Text2ImageApp:
         """Callback для StableDiffusionPipeline"""
         if abort_event.is_set():
             raise asyncio.CancelledError("Diffusion pipeline aborted")
-        asyncio_run(asyncio.sleep(0.0001))
-        if step == 0 or step != total_steps and step % latent_update_frequency != 0:
+        asyncio_run(asyncio.sleep(sleep_time))
+        if (
+            step == 0
+            or step % latent_update_frequency != latent_update_frequency - 1
+            and step != total_steps - 1
+        ):
+            asyncio_run(
+                websocket.send_json(
+                    {
+                        "task_id": task_id,
+                        "status": TaskStatus.RUNNING,
+                        "content": {
+                            "step": step + 1,
+                            "total_steps": total_steps,
+                        },
+                    }
+                )
+            )
             return callback_kwargs
         image = pipeline.decode_latents(callback_kwargs["latents"])
         Text2ImageApp.send_image(
             websocket,
+            task_id,
             image,
-            task_id=task_id,
-            status=TaskStatus.RUNNING,
-            step=step,
+            step=step + 1,
             total_steps=total_steps,
         )
         return callback_kwargs
@@ -121,7 +142,6 @@ class Text2ImageApp:
 
         try:
             while True:
-                await asyncio.sleep(0.0001)
                 data = await websocket.receive_text()
                 async with self.start_abort_lock:
                     # Read generation config
@@ -133,12 +153,6 @@ class Text2ImageApp:
                     # task_id and interrupt_event are created by the queued_generator
                     task_id = queued_task.task_id
                     abort_event = self.queue_manager.abort_map[task_id]
-                    await websocket.send_json(
-                        {
-                            "status": TaskStatus.STARTING,
-                            "task_id": task_id,
-                        }
-                    )
 
                 # Diffusion step callback
                 callback_on_step_end = partial(
@@ -149,55 +163,18 @@ class Text2ImageApp:
                     gen_config.num_inference_steps,
                     self.latent_update_frequency,
                     self.text2image_pipeline,
+                    self.sleep_time,
                 )
-
                 # Start the generation task
-                try:
-                    async for step_info in queued_task(
-                        gen_config, callback_on_step_end
-                    ):
-                        if "status" not in step_info:  # Task's return value.
-                            Text2ImageApp.send_image(
-                                websocket,
-                                step_info["image"],
-                                task_id=task_id,
-                                status=TaskStatus.FINISHED,
-                            )
-                            break
-                        if (
-                            step_info["status"] == TaskStatus.WAITING
-                        ):  # Queuing info returned
-                            await websocket.send_json(step_info)
-                            continue
-                        if (
-                            step_info["status"] != TaskStatus.RUNNING
-                        ):  # Queuing info returned
-                            await websocket.send_json(step_info)
-                            break
-                except asyncio.CancelledError as e:
-                    logging.info(e)
-                    await websocket.send_json(
-                        {
-                            "status": TaskStatus.ABORTED,
-                            "task_id": task_id,
-                        }
-                    )
-                except Exception as e:  # pylint: disable=broad-except
-                    logging.error(e)
-                    await websocket.send_json(
-                        {
-                            "status": TaskStatus.ERROR,
-                            "message": str(e),  ### loggging
-                        }
-                    )
-        except Exception as e:  # pylint: disable=broad-except
-            logging.error(e)
-            await websocket.send_json(
-                {
-                    "status": TaskStatus.ERROR,
-                    "message": str(e),  ### loggging
-                }
-            )
+                async for step_info in queued_task(gen_config, callback_on_step_end):
+                    if step_info["status"] == TaskStatus.ERROR:
+                        step_info["content"] = None
+                    if step_info["status"] == TaskStatus.RUNNING:
+                        # all running steps are managed by the callback
+                        continue
+                    await websocket.send_json(step_info)
+        except WebSocketDisconnect:
+            logging.info("Client disconnected")
         finally:
             await websocket.close()
 
@@ -208,9 +185,8 @@ class Text2ImageApp:
 
     async def abort(self, request: AbortRequest):
         """Abort generation"""
-        print(f"ENTER ABORT Aborting request {request.task_id}")
         async with self.start_abort_lock:
-            print(f"Aborting request {request.task_id}")
+            logging.info("Aborting request %s", request.task_id)
             await self.queue_manager.abort_task(request.task_id)
 
     async def gui(self):

@@ -3,13 +3,10 @@ This module contains the typing classes for the Text2Image Pipeline.
 
 """
 
-from dataclasses import dataclass
-
 from pydantic import BaseModel
 from uvicorn.config import LoopSetupType
 
 
-@dataclass
 class DiffusionConfig(BaseModel):
     """
     A class to hold the configuration for the Diffusion Pipeline initialization.
@@ -20,7 +17,6 @@ class DiffusionConfig(BaseModel):
     low_cpu_mem_usage: bool
 
 
-@dataclass
 class UvicornConfig(BaseModel):
     """
     A class to hold the configuration for the Uvicorn.
@@ -32,7 +28,6 @@ class UvicornConfig(BaseModel):
     loop: LoopSetupType
 
 
-@dataclass
 class GUIConfig(BaseModel):
     """
     A class to hold the configuration for the GUI.
@@ -41,8 +36,7 @@ class GUIConfig(BaseModel):
     latent_update_frequency: int
 
 
-@dataclass
-class Config(BaseModel):
+class Text2ImageConfig(BaseModel):
     """
     A class to hold the configuration for the Text2Image Pipeline.
     """

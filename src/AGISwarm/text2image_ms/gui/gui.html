@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Stable Diffusion Streaming Interface</title>
+    <title>Stable Diffusion Interface</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
     <!--./style.css -->
@@ -20,7 +20,9 @@
             <div id="chat-output" class="chat-output"></div>
             <div class="input-container">
                 <textarea id="prompt" class="form-control" placeholder="Enter your message" rows="1"></textarea>
-                <button onclick="sendButtonClick()" class="btn btn-primary" id="send-btn">Send</button>
+                <button onclick="sendButtonClick()" class="btn btn-primary" id="send-btn">
+                    <i class="fa fa-paper-plane"></i>
+                </button>
             </div>
             <div class="input-container">
                 <textarea id="negative_prompt" class="form-control" placeholder="Enter your negative prompt"></textarea>

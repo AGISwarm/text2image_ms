@@ -1,6 +1,7 @@
 let ws = new WebSocket(WEBSOCKET_URL);
 let abort_url = ABORT_URL;
 let currentRequestID = '';
+let idle = true;
 
 ws.onopen = function () {
     console.log("WebSocket connection established");
@@ -13,26 +14,30 @@ ws.onmessage = function (event) {
     switch (data["status"]) {
         case "starting":
             updateStatus("Starting generation");
+            disableGenerateButton();
             break;
         case "waiting":
-            updateStatus("Waiting for " + data["queue_pos"] + " requests to finish");
+            queue_pos = data["content"]["queue_pos"];
+            updateStatus("<br>" + "<span style='color:blue;'>You are in position " + queue_pos + " in the queue</span>" + "<br>");
+            enableAbortButton();
             break;
         case "running":
-            updateStatus(data["step"] + " / " + data["total_steps"]);
-            updateImage(data["image"]);
+            updateStatus(data["content"]["step"] + " / " + data["content"]["total_steps"]);
+            if ("image" in data["content"]){
+                updateImage(data["content"]["image"]);
+            }
+            enableAbortButton();
             break;
         case "finished":
             updateStatus("");
-            updateImage(data["image"]);
             enableGenerateButton();
             break;
         case "aborted":
-            updateStatus("Generation aborted");
+            updateStatus("<br>" + "<span style='color:red;'>Generation aborted</span>" + "<br>");
             enableGenerateButton();
             break;
         case "error":
-            console.log("Error in the server");
-            updateStatus("Error in the server");
+            updateStatus("<br>" + "<span style='color:red;'>Error in generation</span>" + "<br>");
             enableGenerateButton();
             break;
     }
@@ -117,19 +122,14 @@ function abortGeneration() {
     })
         .then(response => response.text())
         .catch(error => console.error('Error aborting generation:', error));
-    // Enable the send button
-    document.getElementById('send-btn').style.backgroundColor = "#363d46";
-    document.getElementById('send-btn').textContent = "Send";
-    document.getElementById('send-btn').disabled = false;
-    console.log("Generation aborted.");
 }
 
 function sendButtonClick() {
     document.getElementById('send-btn').disabled = true;
-    if (document.getElementById('send-btn').textContent === "Send") {
+    if (idle) {
         sendMessage();
     }
-    else if (document.getElementById('send-btn').textContent === "Abort") {
+    else {
         abortGeneration();
     }
 }
@@ -137,7 +137,7 @@ function sendButtonClick() {
 function enterSend(event) {
     if (event.key === 'Enter' && !event.ctrlKey) {
         event.preventDefault();
-        if (document.getElementById('send-btn').textContent === "Send") {
+        if (idle){
             document.getElementById('send-btn').disabled = true;
             sendMessage();
         }
@@ -145,7 +145,7 @@ function enterSend(event) {
         // Allow new line with Ctrl+Enter
         this.value += '\n';
     }
-};
+}
 
 document.getElementById('prompt').addEventListener('keydown', enterSend);
 document.getElementById('negative_prompt').addEventListener('keydown', enterSend);
@@ -154,11 +154,11 @@ function updateStatus(message) {
     botMessage = get_bot_message_container();
     statusElement = botMessage.querySelector('#status');
     if (!statusElement) {
-        statusElement = document.createElement('div');
+        statusElement = document.createElement('pre');
         statusElement.id = 'status';
         botMessage.appendChild(statusElement);
     }
-    statusElement.textContent = message;
+    statusElement.innerHTML = message;
 };
 
 
@@ -199,16 +199,25 @@ function updateImage(base64Image) {
 };
 
 function disableGenerateButton() {
-    document.getElementById('send-btn').style.backgroundColor = "#808080";
-    document.getElementById('send-btn').textContent = "Abort";
-    document.getElementById('send-btn').disabled = false;
+    document.getElementById('send-btn').disabled = true;
 };
 
 function enableGenerateButton() {
     document.getElementById('send-btn').style.backgroundColor = "#363d46";
-    document.getElementById('send-btn').textContent = "Send";
+    document.getElementById('send-btn').innerHTML = '<i class="fa fa-paper-plane"></i>';
     document.getElementById('send-btn').disabled = false;
+    idle = true;
 };
+
+function enableAbortButton() {
+    if (!idle) {
+        return;
+    }
+    document.getElementById('send-btn').style.backgroundColor = "#363d46";
+    document.getElementById('send-btn').innerHTML = '<i class="fa fa-stop"></i>';
+    document.getElementById('send-btn').disabled = false;
+    idle = false;
+}
 
 function resetForm() {
     document.getElementById('num_inference_steps').value = '50';

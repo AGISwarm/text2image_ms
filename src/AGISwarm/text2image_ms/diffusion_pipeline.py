@@ -75,8 +75,7 @@ class Text2ImagePipeline:
         if gen_config.seed != -1:
             generator = torch.Generator()
             generator.manual_seed(gen_config.seed)
-        return {
-            "image": self.pipeline(
+        return self.pipeline(
                 prompt=gen_config.prompt,
                 negative_prompt=gen_config.negative_prompt,
                 num_inference_steps=gen_config.num_inference_steps,
@@ -86,7 +85,6 @@ class Text2ImagePipeline:
                 height=gen_config.height,
                 callback_on_step_end=callback_on_step_end,
             )["images"][0]
-        }
 
     def decode_latents(self, latents: torch.Tensor, output_type: str = "pil"):
         """

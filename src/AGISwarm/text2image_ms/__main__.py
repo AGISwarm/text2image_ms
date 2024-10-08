@@ -10,7 +10,7 @@ import hydra
 import uvicorn
 
 from .app import Text2ImageApp
-from .typing import Config
+from .typing import Text2ImageConfig
 
 
 @hydra.main(
@@ -18,7 +18,7 @@ from .typing import Config
     config_name="config",
     config_path=str(Path(os.getcwd()) / "config"),
 )
-def main(config: Config):
+def main(config: Text2ImageConfig):
     """
     The main function for the Text2Image service.
     """
